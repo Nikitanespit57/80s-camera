@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Happy Birthday</title>
+  <title>С Днём Рождения, Полли❤️</title>
   <style>
     html, body {
       margin: 0;
@@ -13,15 +13,15 @@
       font-family: 'Courier New', monospace;
     }
 
-    video {
+    video, canvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      filter: contrast(1.4) saturate(1.8) hue-rotate(200deg) brightness(1.1);
       z-index: 1;
+      filter: contrast(1.4) saturate(1.8) hue-rotate(200deg) brightness(1.1);
     }
 
     .grain {
@@ -50,32 +50,60 @@
 
     .text-overlay {
       position: absolute;
-      bottom: 15%;
+      bottom: 5%;
       width: 100%;
       text-align: center;
-      font-size: 2.5em;
+      font-size: 1.5em;
       color: #ff66cc;
-      text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc;
+      text-shadow: 0 0 5px #00ffff, 0 0 10px #ff66cc;
       z-index: 4;
-      animation: glow 2s ease-in-out infinite alternate;
+      pointer-events: none;
     }
 
-    @keyframes glow {
-      from { text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc; }
-      to { text-shadow: 0 0 10px #00ffff, 0 0 25px #ff66cc; }
+    .photo-button {
+      position: absolute;
+      bottom: 13%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid magenta;
+      color: magenta;
+      font-size: 1.2em;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 5;
+      backdrop-filter: blur(5px);
+    }
+
+    .time-overlay {
+      position: absolute;
+      top: 5%;
+      right: 5%;
+      color: #d4a100;
+      font-size: 1.3em;
+      font-weight: bold;
+      text-shadow: 0 0 5px black;
+      z-index: 4;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display: none;"></canvas>
+
   <div class="grain"></div>
   <div class="scanlines"></div>
+  <div class="time-overlay" id="time"></div>
   <div class="text-overlay">С Днём Рождения, Полли❤️</div>
+  <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
 
   <script>
     const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
 
-    // Попытка включить основную (заднюю) камеру
     navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: "environment" }
@@ -85,9 +113,33 @@
       video.srcObject = stream;
     })
     .catch(err => {
-      alert("Не удалось включить основную камеру. Попробуйте открыть сайт в мобильном браузере.");
+      alert("Не удалось включить камеру. Попробуйте открыть сайт в мобильном браузере.");
       console.error(err);
     });
+
+    function takePhoto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.filter = getComputedStyle(video).filter;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const link = document.createElement('a');
+      link.download = 'photo.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function updateTime() {
+      const now = new Date();
+      const utc3 = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+      const hours = String(utc3.getUTCHours()).padStart(2, '0');
+      const minutes = String(utc3.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(utc3.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('time').textContent = ${hours}:${minutes}:${seconds};
+    }
+
+    setInterval(updateTime, 1000);
+    updateTime();
   </script>
 </body>
 </html>
