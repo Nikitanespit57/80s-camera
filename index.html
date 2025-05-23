@@ -20,31 +20,22 @@
       filter: brightness(1.1) contrast(1.2) sepia(0.3) saturate(1.1);
       z-index: 1;
     }
-    .grain {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      background: url('https://media.giphy.com/media/oEI9uBYSzLpBK/giphy.gif');
-      opacity: 0.15;
+    .viewfinder {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('viewfinder.png') center center no-repeat;
+      background-size: contain;
       pointer-events: none;
       z-index: 2;
-      mix-blend-mode: screen;
     }
-    .scanlines {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      background: repeating-linear-gradient(
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.25) 3px
-      );
-      pointer-events: none;
-      z-index: 3;
-    }
-    .photo-button, .switch-button {
+    .photo-button {
       position: absolute;
-      z-index: 4;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
       padding: 10px 20px;
       font-size: 1.1em;
       color: white;
@@ -53,134 +44,55 @@
       border-radius: 10px;
       cursor: pointer;
     }
-    .photo-button {
-      bottom: 12%;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .switch-button {
+    .signature {
+      position: absolute;
       bottom: 5%;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    #canvas, #polaroidCanvas {
-      display: none;
-    }
-    #polaroidImage {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.8);
-      opacity: 0;
-      z-index: 5;
-      transition: all 1s ease;
-    }
-    #polaroidImage.show {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      width: 100%;
+      text-align: center;
+      font-size: 1.2em;
+      color: white;
+      z-index: 3;
     }
   </style>
 </head>
 <body>
 
   <video id="video" autoplay playsinline></video>
-  <div class="grain"></div>
-  <div class="scanlines"></div>
-
+  <div class="viewfinder"></div>
   <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
-  <button class="switch-button" onclick="switchCamera()">Сменить камеру</button>
+  <div class="signature">День Рождение нашей Полли❤️</div>
 
-  <canvas id="canvas"></canvas>
-  <canvas id="polaroidCanvas"></canvas>
-  <img id="polaroidImage" />
-
+  <canvas id="canvas" style="display:none;"></canvas>
   <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
 
   <script>
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
-    const polaroidCanvas = document.getElementById("polaroidCanvas");
-    const pImage = document.getElementById("polaroidImage");
     const shutter = document.getElementById("shutter");
-
     const ctx = canvas.getContext("2d");
-    const pctx = polaroidCanvas.getContext("2d");
 
-    let useFront = false;
-    let currentStream = null;
-
-    function startCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: useFront ? "user" : "environment" }
-        }
-      })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
-        currentStream = stream;
         video.srcObject = stream;
       })
       .catch(err => {
-        // Если exact не поддерживается, fallback
-        navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: useFront ? "user" : "environment" }
-          }
-        }).then(stream => {
-          currentStream = stream;
-          video.srcObject = stream;
-        }).catch(console.error);
+        console.error("Ошибка доступа к камере: ", err);
       });
-    }
-
-    function switchCamera() {
-      useFront = !useFront;
-      startCamera();
-    }
 
     function takePhoto() {
       shutter.play();
       const w = video.videoWidth;
       const h = video.videoHeight;
-
       canvas.width = w;
       canvas.height = h;
       ctx.filter = getComputedStyle(video).filter;
       ctx.drawImage(video, 0, 0, w, h);
-
-      const border = 40;
-      const bottom = 100;
-      const pW = w + border * 2;
-      const pH = h + border + bottom;
-
-      polaroidCanvas.width = pW;
-polaroidCanvas.height = pH;
-
-      pctx.fillStyle = '#ffffff';
-      pctx.fillRect(0, 0, pW, pH);
-      pctx.drawImage(canvas, border, border, w, h);
-
-      pctx.fillStyle = '#333';
-      pctx.font = '22px Courier New';
-      pctx.textAlign = 'center';
-      pctx.fillText('День Рождение нашей Полли❤️', pW / 2, pH - 40);
-
-      const dataURL = polaroidCanvas.toDataURL('image/jpeg', 0.92);
+      const dataURL = canvas.toDataURL('image/jpeg');
       const link = document.createElement('a');
-      link.download = 'polaroid.jpg';
       link.href = dataURL;
+      link.download = 'polaroid.jpg';
       link.click();
-
-      pImage.src = dataURL;
-      pImage.classList.add('show');
-      setTimeout(() => {
-        pImage.classList.remove('show');
-      }, 3000);
     }
-
-    startCamera();
   </script>
 
 </body>
