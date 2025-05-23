@@ -140,6 +140,18 @@
       link.download = 'photo.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
+navigator.mediaDevices.getUserMedia({
+  video: {
+    facingMode: { ideal: "environment" }
+  }
+})
+.then(stream => {
+  video.srcObject = stream;
+})
+.catch(err => {
+  alert("Не удалось включить камеру. Разрешите доступ или попробуйте другой браузер.");
+  console.error(err);
+});
     }
 
     // Время по Москве
@@ -155,6 +167,7 @@
 
     setInterval(updateTime, 1000);
     updateTime();
+
   </script>
 </body>
 </html>
