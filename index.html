@@ -3,27 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>С Днём Рождения, Полли❤️</title>
+  <title>Polaroid для Полли</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      overflow: hidden;
       background: black;
       font-family: 'Courier New', monospace;
+      overflow: hidden;
     }
-
-    video, canvas {
+    video {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
+      filter: brightness(1.1) contrast(1.2) sepia(0.3) saturate(1.1);
       z-index: 1;
-      filter: contrast(1.4) saturate(1.8) hue-rotate(200deg) brightness(1.1);
     }
-
     .grain {
       position: fixed;
       width: 100%;
@@ -34,7 +30,6 @@
       z-index: 2;
       mix-blend-mode: screen;
     }
-
     .scanlines {
       position: fixed;
       width: 100%;
@@ -42,85 +37,151 @@
       background: repeating-linear-gradient(
         transparent,
         transparent 2px,
-        rgba(0, 0, 0, 0.3) 3px
+        rgba(0, 0, 0, 0.25) 3px
       );
+      pointer-events: none;
       z-index: 3;
-      pointer-events: none;
     }
-
-    .text-overlay {
+    .photo-button, .switch-button {
       position: absolute;
-      bottom: 15%;
-      width: 100%;
-      text-align: center;
-      font-size: 2.5em;
-      color: #ff66cc;
-      text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc;
       z-index: 4;
-      animation: glow 2s ease-in-out infinite alternate;
-      pointer-events: none;
+      padding: 10px 20px;
+      font-size: 1.1em;
+      color: white;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid white;
+      border-radius: 10px;
+      cursor: pointer;
     }
-
     .photo-button {
-      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .switch-button {
       bottom: 5%;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid magenta;
-      color: magenta;
-      font-size: 1.2em;
-      padding: 10px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      z-index: 5;
-      backdrop-filter: blur(5px);
     }
-
-    @keyframes glow {
-      from { text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc; }
-      to { text-shadow: 0 0 10px #00ffff, 0 0 25px #ff66cc; }
+    #canvas, #polaroidCanvas {
+      display: none;
+    }
+    #polaroidImage {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      opacity: 0;
+      z-index: 5;
+      transition: all 1s ease;
+    }
+    #polaroidImage.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
     }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display: none;"></canvas>
 
+  <video id="video" autoplay playsinline></video>
   <div class="grain"></div>
   <div class="scanlines"></div>
-  <div class="text-overlay">С Днём Рождения, Полли❤️</div>
+
   <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
+  <button class="switch-button" onclick="switchCamera()">Сменить камеру</button>
+
+  <canvas id="canvas"></canvas>
+  <canvas id="polaroidCanvas"></canvas>
+  <img id="polaroidImage" />
+
+  <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
 
   <script>
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
-    const context = canvas.getContext("2d");
+    const polaroidCanvas = document.getElementById("polaroidCanvas");
+    const pImage = document.getElementById("polaroidImage");
+    const shutter = document.getElementById("shutter");
 
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" }
+    const ctx = canvas.getContext("2d");
+    const pctx = polaroidCanvas.getContext("2d");
+
+    let useFront = false;
+    let currentStream = null;
+
+    function startCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
       }
-    })
-    .then(stream => {
-      video.srcObject = stream;
-    })
-    .catch(err => {
-      alert("Не удалось включить камеру. Попробуйте открыть сайт в мобильном браузере.");
-      console.error(err);
-    });
+      navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { exact: useFront ? "user" : "environment" }
+        }
+      })
+      .then(stream => {
+        currentStream = stream;
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        // Если exact не поддерживается, fallback
+        navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: useFront ? "user" : "environment" }
+          }
+        }).then(stream => {
+          currentStream = stream;
+          video.srcObject = stream;
+        }).catch(console.error);
+      });
+    }
+
+    function switchCamera() {
+      useFront = !useFront;
+      startCamera();
+    }
 
     function takePhoto() {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.filter = getComputedStyle(video).filter;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      shutter.play();
+      const w = video.videoWidth;
+      const h = video.videoHeight;
 
+      canvas.width = w;
+      canvas.height = h;
+      ctx.filter = getComputedStyle(video).filter;
+      ctx.drawImage(video, 0, 0, w, h);
+
+      const border = 40;
+      const bottom = 100;
+      const pW = w + border * 2;
+      const pH = h + border + bottom;
+
+      polaroidCanvas.width = pW;
+      polaroidCanvas.height = pH;
+
+      pctx.fillStyle = '#ffffff';
+      pctx.fillRect(0, 0, pW, pH);
+      pctx.drawImage(canvas, border, border, w, h);
+
+      pctx.fillStyle = '#333';
+      pctx.font = '22px Courier New';
+      pctx.textAlign = 'center';
+      pctx.fillText('День Рождение нашей Полли❤️', pW / 2, pH - 40);
+
+      const dataURL = polaroidCanvas.toDataURL('image/jpeg', 0.92);
       const link = document.createElement('a');
-      link.download = 'photo.png';
-      link.href = canvas.toDataURL('image/png');
+      link.download = 'polaroid.jpg';
+      link.href = dataURL;
       link.click();
+
+      pImage.src = dataURL;
+      pImage.classList.add('show');
+      setTimeout(() => {
+        pImage.classList.remove('show');
+      }, 3000);
     }
+
+    startCamera();
   </script>
+
 </body>
 </html>
