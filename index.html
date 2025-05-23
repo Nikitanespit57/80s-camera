@@ -75,5 +75,19 @@
   <script>
     const video = document.getElementById("video");
 
+    // Попытка включить основную (заднюю) камеру
     navigator.mediaDevices.getUserMedia({
-      video:
+      video: {
+        facingMode: { ideal: "environment" }
+      }
+    })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert("Не удалось включить основную камеру. Попробуйте открыть сайт в мобильном браузере.");
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
