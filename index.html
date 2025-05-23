@@ -13,7 +13,7 @@
       font-family: 'Courier New', monospace;
     }
 
-    video {
+    video, canvas {
       position: absolute;
       top: 0;
       left: 0;
@@ -22,10 +22,6 @@
       object-fit: cover;
       z-index: 1;
       filter: contrast(1.4) saturate(1.8) hue-rotate(200deg) brightness(1.1);
-    }
-
-    canvas {
-      display: none;
     }
 
     .grain {
@@ -54,25 +50,26 @@
 
     .text-overlay {
       position: absolute;
-      bottom: 5%;
+      bottom: 15%;
       width: 100%;
       text-align: center;
-      font-size: 1.3em;
+      font-size: 2.5em;
       color: #ff66cc;
-      text-shadow: 0 0 5px #00ffff, 0 0 10px #ff66cc;
+      text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc;
       z-index: 4;
+      animation: glow 2s ease-in-out infinite alternate;
       pointer-events: none;
     }
 
     .photo-button {
       position: absolute;
-      bottom: 13%;
+      bottom: 5%;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.1);
       border: 2px solid magenta;
       color: magenta;
-      font-size: 1.1em;
+      font-size: 1.2em;
       padding: 10px 20px;
       border-radius: 10px;
       cursor: pointer;
@@ -80,26 +77,18 @@
       backdrop-filter: blur(5px);
     }
 
-    .time-overlay {
-      position: absolute;
-      top: 5%;
-      right: 5%;
-      color: #d4a100;
-      font-size: 1.2em;
-      font-weight: bold;
-      text-shadow: 0 0 5px black;
-      z-index: 4;
-      pointer-events: none;
+    @keyframes glow {
+      from { text-shadow: 0 0 5px #00ffff, 0 0 15px #ff66cc; }
+      to { text-shadow: 0 0 10px #00ffff, 0 0 25px #ff66cc; }
     }
   </style>
 </head>
 <body>
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas"></canvas>
+  <canvas id="canvas" style="display: none;"></canvas>
 
   <div class="grain"></div>
   <div class="scanlines"></div>
-  <div class="time-overlay" id="time">00:00:00</div>
   <div class="text-overlay">С Днём Рождения, Полли❤️</div>
   <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
 
@@ -108,28 +97,19 @@
     const canvas = document.getElementById("canvas");
     const context = canvas.getContext("2d");
 
-    // Запрос к задней камере
     navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { exact: "environment" }
+        facingMode: { ideal: "environment" }
       }
     })
     .then(stream => {
       video.srcObject = stream;
     })
-    .catch(() => {
-      // fallback на любую доступную камеру, если основная недоступна
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          video.srcObject = stream;
-        })
-        .catch(err => {
-          alert("Камера не доступна.");
-          console.error(err);
-        });
+    .catch(err => {
+      alert("Не удалось включить камеру. Попробуйте открыть сайт в мобильном браузере.");
+      console.error(err);
     });
 
-    // Функция фото
     function takePhoto() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -140,34 +120,7 @@
       link.download = 'photo.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
-navigator.mediaDevices.getUserMedia({
-  video: {
-    facingMode: { ideal: "environment" }
-  }
-})
-.then(stream => {
-  video.srcObject = stream;
-})
-.catch(err => {
-  alert("Не удалось включить камеру. Разрешите доступ или попробуйте другой браузер.");
-  console.error(err);
-});
     }
-
-    // Время по Москве
-    function updateTime() {
-      const now = new Date();
-      const offsetMs = 3 * 60 * 60 * 1000; // +3 часа к UTC
-      const moscow = new Date(now.getTime() + offsetMs);
-      const h = String(moscow.getUTCHours()).padStart(2, '0');
-      const m = String(moscow.getUTCMinutes()).padStart(2, '0');
-      const s = String(moscow.getUTCSeconds()).padStart(2, '0');
-      document.getElementById('time').textContent = ${h}:${m}:${s};
-    }
-
-    setInterval(updateTime, 1000);
-    updateTime();
-
   </script>
 </body>
 </html>
