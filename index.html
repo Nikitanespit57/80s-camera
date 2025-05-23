@@ -3,36 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Polaroid для Полли</title>
+  <title>Polaroid Polly</title>
   <style>
     body {
       margin: 0;
       background: black;
-      font-family: 'Courier New', monospace;
       overflow: hidden;
+      font-family: 'Courier New', monospace;
     }
     video {
       position: absolute;
-      top: 0; left: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      filter: brightness(1.1) contrast(1.2) sepia(0.3) saturate(1.1);
+      filter: brightness(1.1) contrast(1.15) sepia(0.2) saturate(1.3);
       z-index: 1;
     }
-    .viewfinder {
+    .overlay-frame {
       position: absolute;
       top: 0; left: 0;
       width: 100vw;
       height: 100vh;
-      background: url('viewfinder.png') center center no-repeat;
-      background-size: contain;
+      background: url('polaroid-frame.png') center center no-repeat;
+      background-size: cover;
       pointer-events: none;
       z-index: 2;
     }
+    .signature {
+      position: absolute;
+      bottom: 7%;
+      width: 100%;
+      text-align: center;
+      font-size: 1.2em;
+      color: white;
+      z-index: 3;
+      text-shadow: 1px 1px 2px black;
+    }
     .photo-button {
       position: absolute;
-      bottom: 12%;
+      bottom: 15%;
       left: 50%;
       transform: translateX(-50%);
       z-index: 3;
@@ -44,23 +53,14 @@
       border-radius: 10px;
       cursor: pointer;
     }
-    .signature {
-      position: absolute;
-      bottom: 5%;
-      width: 100%;
-      text-align: center;
-      font-size: 1.2em;
-      color: white;
-      z-index: 3;
-    }
   </style>
 </head>
 <body>
 
   <video id="video" autoplay playsinline></video>
-  <div class="viewfinder"></div>
+  <div class="overlay-frame"></div>
+  <div class="signature">День Рождения нашей Полли❤️</div>
   <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
-  <div class="signature">День Рождение нашей Полли❤️</div>
 
   <canvas id="canvas" style="display:none;"></canvas>
   <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
@@ -71,22 +71,25 @@
     const shutter = document.getElementById("shutter");
     const ctx = canvas.getContext("2d");
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    // Включаем основную камеру
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
       .then(stream => {
         video.srcObject = stream;
       })
-      .catch(err => {
-        console.error("Ошибка доступа к камере: ", err);
+      .catch(() => {
+        // fallback на фронтальную, если основная не доступна
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            video.srcObject = stream;
+          });
       });
 
     function takePhoto() {
       shutter.play();
-      const w = video.videoWidth;
-      const h = video.videoHeight;
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       ctx.filter = getComputedStyle(video).filter;
-      ctx.drawImage(video, 0, 0, w, h);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataURL = canvas.toDataURL('image/jpeg');
       const link = document.createElement('a');
       link.href = dataURL;
