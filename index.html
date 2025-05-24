@@ -68,6 +68,16 @@
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
         video.srcObject = stream;
+
+        const [track] = stream.getVideoTracks();
+        const capabilities = track.getCapabilities();
+
+        if (capabilities.zoom) {
+          const zoomLevel = Math.min(capabilities.zoom.max, 2.5);
+          track.applyConstraints({
+            advanced: [{ zoom: zoomLevel }]
+          }).catch(e => console.warn("Zoom not applied:", e));
+        }
       })
       .catch(() => {
         navigator.mediaDevices.getUserMedia({ video: true })
