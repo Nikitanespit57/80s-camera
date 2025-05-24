@@ -8,10 +8,10 @@
     body {
       margin: 0;
       background: black;
-      overflow: hidden;
       font-family: 'Courier New', monospace;
+      overflow: hidden;
     }
-    video {
+    #video {
       position: absolute;
       width: 100vw;
       height: 100vh;
@@ -19,34 +19,14 @@
       filter: brightness(1.1) contrast(1.15) sepia(0.2) saturate(1.3);
       z-index: 1;
     }
-    .overlay-frame {
+    #capture-button {
       position: absolute;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: url('polaroid-frame.png') center center no-repeat;
-      background-size: cover;
-      pointer-events: none;
-      z-index: 2;
-    }
-    .signature {
-      position: absolute;
-      bottom: 7%;
-      width: 100%;
-      text-align: center;
-      font-size: 1.2em;
-      color: white;
-      z-index: 3;
-      text-shadow: 1px 1px 2px black;
-    }
-    .photo-button {
-      position: absolute;
-      bottom: 15%;
+      bottom: 5%;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 3;
-      padding: 10px 20px;
-      font-size: 1.1em;
+      z-index: 10;
+      padding: 15px 30px;
+      font-size: 1.2em;
       color: white;
       background: rgba(0, 0, 0, 0.6);
       border: 2px solid white;
@@ -58,45 +38,64 @@
 <body>
 
   <video id="video" autoplay playsinline></video>
-  <div class="overlay-frame"></div>
-  <div class="signature">День Рождения нашей Полли❤️</div>
-  <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
-
   <canvas id="canvas" style="display:none;"></canvas>
   <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
+
+  <button id="capture-button">Сделать фото</button>
 
   <script>
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
-    const shutter = document.getElementById("shutter");
     const ctx = canvas.getContext("2d");
+    const shutter = document.getElementById("shutter");
 
-    // Включаем основную камеру
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+    // Включаем камеру
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
         video.srcObject = stream;
       })
       .catch(() => {
-        // fallback на фронтальную, если основная не доступна
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(stream => {
             video.srcObject = stream;
           });
       });
 
-    function takePhoto() {
+    document.getElementById("capture-button").addEventListener("click", () => {
       shutter.play();
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.filter = getComputedStyle(video).filter;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataURL = canvas.toDataURL('image/jpeg');
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = 'polaroid.jpg';
-      link.click();
-    }
-  </script>
 
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Рисуем видео с фильтром
+      ctx.filter = getComputedStyle(video).filter;
+      ctx.drawImage(video, 0, 0, width, height);
+
+      // Подпись
+      ctx.font = ${height * 0.05}px 'Courier New', monospace;
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = 'black';
+      ctx.shadowBlur = 4;
+      ctx.fillText('День Рождения нашей Полли❤️', width / 2, height - height * 0.05);
+
+      // Накладываем рамку поверх
+      const frame = new Image();
+      frame.src = 'frame.png';
+      frame.onload = () => {
+        ctx.drawImage(frame, 0, 0, width, height);
+
+        // Сохраняем изображение
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/jpeg');
+        link.download = 'polaroid.jpg';
+        link.click();
+      };
+    });
+  </script>
 </body>
 </html>
