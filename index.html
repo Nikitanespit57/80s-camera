@@ -1,54 +1,71 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
   <title>Polaroid Polly</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
       background: black;
-      font-family: 'Courier New', monospace;
       overflow: hidden;
+      font-family: 'Courier New', monospace;
     }
-    video {
+
+    #video {
       position: absolute;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      filter: brightness(1.1) contrast(1.15) sepia(0.2) saturate(1.3);
+      filter: brightness(1.1) contrast(1.2) sepia(0.1) saturate(1.3);
       z-index: 1;
     }
-    #capture-button {
+
+    .overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('frame.png') center center no-repeat;
+      background-size: cover;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .photo-button {
       position: absolute;
       bottom: 5%;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 10;
-      padding: 15px 30px;
-      font-size: 1.2em;
+      z-index: 3;
+      padding: 12px 25px;
+      font-size: 1.1em;
       color: white;
       background: rgba(0, 0, 0, 0.6);
       border: 2px solid white;
       border-radius: 10px;
       cursor: pointer;
     }
+
+    canvas {
+      display: none;
+    }
   </style>
 </head>
 <body>
-
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
+  <div class="overlay"></div>
+  <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
+  <canvas id="canvas"></canvas>
   <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
-
-  <button id="capture-button">Сделать фото</button>
 
   <script>
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
     const shutter = document.getElementById("shutter");
+    const ctx = canvas.getContext("2d");
 
+    // Включаем камеру
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
         video.srcObject = stream;
@@ -60,52 +77,29 @@
           });
       });
 
-    document.getElementById("capture-button").addEventListener("click", () => {
+    function takePhoto() {
       shutter.play();
 
-      const width = 768;
-      const height = 864;
-
+      const width = video.videoWidth;
+      const height = video.videoHeight;
       canvas.width = width;
       canvas.height = height;
 
-      // Снимок с камеры
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      const tempCtx = tempCanvas.getContext("2d");
-      tempCtx.filter = getComputedStyle(video).filter;
-      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+      ctx.filter = getComputedStyle(video).filter;
+      ctx.drawImage(video, 0, 0, width, height);
 
-      const snapshot = new Image();
-      snapshot.src = tempCanvas.toDataURL("image/jpeg");
+      const frame = new Image();
+      frame.src = 'frame.png';
 
-      snapshot.onload = () => {
-        // Вставим фото в центр "рамки"
-        ctx.fillStyle = "#333";
-        ctx.fillRect(0, 0, width, height);
-
-        const photoX = 64;
-        const photoY = 64;
-        const photoW = 640;
-        const photoH = 480;
-
-        ctx.drawImage(snapshot, photoX, photoY, photoW, photoH);
-
-        // Добавляем рамку PNG поверх
-        const frame = new Image();
-        frame.src = "frame.png"; // Рамка как в примере (прозрачная)
-        frame.onload = () => {
-          ctx.drawImage(frame, 0, 0, width, height);
-
-          // Сохраняем
-          const link = document.createElement('a');
-          link.href = canvas.toDataURL('image/jpeg');
-          link.download = 'polaroid.jpg';
-          link.click();
-        };
+      frame.onload = function () {
+        ctx.drawImage(frame, 0, 0, width, height);
+        const image = canvas.toDataURL("image/jpeg");
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = 'polaroid.jpg';
+        link.click();
       };
-    });
+    }
   </script>
 </body>
 </html>
