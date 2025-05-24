@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Polaroid Polly</title>
   <style>
     body {
@@ -11,7 +11,7 @@
       font-family: 'Courier New', monospace;
       overflow: hidden;
     }
-    #video {
+    video {
       position: absolute;
       width: 100vw;
       height: 100vh;
@@ -49,7 +49,6 @@
     const ctx = canvas.getContext("2d");
     const shutter = document.getElementById("shutter");
 
-    // Включаем камеру
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
         video.srcObject = stream;
@@ -64,36 +63,47 @@
     document.getElementById("capture-button").addEventListener("click", () => {
       shutter.play();
 
-      const width = video.videoWidth;
-      const height = video.videoHeight;
+      const width = 768;
+      const height = 864;
 
       canvas.width = width;
       canvas.height = height;
 
-      // Рисуем видео с фильтром
-      ctx.filter = getComputedStyle(video).filter;
-      ctx.drawImage(video, 0, 0, width, height);
+      // Снимок с камеры
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCtx.filter = getComputedStyle(video).filter;
+      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-      // Подпись
-      ctx.font = ${height * 0.05}px 'Courier New', monospace;
-      ctx.fillStyle = 'white';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.shadowColor = 'black';
-      ctx.shadowBlur = 4;
-      ctx.fillText('День Рождения нашей Полли❤️', width / 2, height - height * 0.05);
+      const snapshot = new Image();
+      snapshot.src = tempCanvas.toDataURL("image/jpeg");
 
-      // Накладываем рамку поверх
-      const frame = new Image();
-      frame.src = 'frame.png';
-      frame.onload = () => {
-        ctx.drawImage(frame, 0, 0, width, height);
+      snapshot.onload = () => {
+        // Вставим фото в центр "рамки"
+        ctx.fillStyle = "#333";
+        ctx.fillRect(0, 0, width, height);
 
-        // Сохраняем изображение
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/jpeg');
-        link.download = 'polaroid.jpg';
-        link.click();
+        const photoX = 64;
+        const photoY = 64;
+        const photoW = 640;
+        const photoH = 480;
+
+        ctx.drawImage(snapshot, photoX, photoY, photoW, photoH);
+
+        // Добавляем рамку PNG поверх
+        const frame = new Image();
+        frame.src = "frame.png"; // Рамка как в примере (прозрачная)
+        frame.onload = () => {
+          ctx.drawImage(frame, 0, 0, width, height);
+
+          // Сохраняем
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL('image/jpeg');
+          link.download = 'polaroid.jpg';
+          link.click();
+        };
       };
     });
   </script>
