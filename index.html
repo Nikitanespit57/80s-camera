@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Polaroid Polly</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
@@ -12,51 +12,86 @@
       font-family: 'Courier New', monospace;
     }
 
-    #video {
+    video {
       position: absolute;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      filter: brightness(1.1) contrast(1.2) sepia(0.1) saturate(1.3);
+      filter: brightness(1.1) contrast(1.15) sepia(0.2) saturate(1.3);
       z-index: 1;
     }
 
-    .overlay {
+    .overlay-frame {
       position: absolute;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
-      background: url('frame.png') center center no-repeat;
+      background: url('polaroid-frame.png') center center no-repeat;
       background-size: cover;
-      z-index: 2;
       pointer-events: none;
+      z-index: 2;
+    }
+
+    .signature {
+      position: absolute;
+      bottom: 7%;
+      width: 100%;
+      text-align: center;
+      font-size: 1.2em;
+      color: white;
+      z-index: 3;
+      text-shadow: 1px 1px 2px black;
+    }
+
+    .photo-controls {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      z-index: 4;
+      text-align: center;
     }
 
     .photo-button {
-      position: absolute;
-      bottom: 5%;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 3;
-      padding: 12px 25px;
+      padding: 10px 20px;
       font-size: 1.1em;
       color: white;
       background: rgba(0, 0, 0, 0.6);
       border: 2px solid white;
       border-radius: 10px;
       cursor: pointer;
+      margin-top: 10px;
     }
 
-    canvas {
-      display: none;
+    .text-input {
+      font-size: 1em;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid gray;
+      width: 80%;
+      max-width: 400px;
     }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline muted></video>
-  <div class="overlay"></div>
-  <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
-  <canvas id="canvas"></canvas>
+
+  <video id="video" autoplay playsinline></video>
+  <div class="overlay-frame"></div>
+  <div class="signature" id="signatureText">День Рождения нашей Полли ❤️</div>
+
+  <div class="photo-controls">
+    <input
+      class="text-input"
+      type="text"
+      id="textInput"
+      placeholder="Введите надпись на рамке"
+      oninput="updateSignature()"
+    />
+    <br />
+    <button class="photo-button" onclick="takePhoto()">Сделать фото</button>
+  </div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
   <audio id="shutter" src="https://www.soundjay.com/mechanical/camera-shutter-click-01.mp3" preload="auto"></audio>
 
   <script>
@@ -64,46 +99,45 @@
     const canvas = document.getElementById("canvas");
     const shutter = document.getElementById("shutter");
     const ctx = canvas.getContext("2d");
+    const signature = document.getElementById("signatureText");
+    const textInput = document.getElementById("textInput");
 
-    // Получение камеры без зума
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    })
-    .then(stream => {
-      video.srcObject = stream;
-    })
-    .catch(err => {
-      console.warn("Ошибка доступа к камере", err);
-    });
+    // Камера
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(() => {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            video.srcObject = stream;
+          });
+      });
+
+    function updateSignature() {
+      signature.innerText = textInput.value;
+    }
 
     function takePhoto() {
       shutter.play();
-
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      canvas.width = width;
-      canvas.height = height;
-
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       ctx.filter = getComputedStyle(video).filter;
-      ctx.drawImage(video, 0, 0, width, height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const frame = new Image();
-      frame.src = 'frame.png';
+      // Добавляем подпись
+      ctx.font = ${canvas.height * 0.05}px Courier New;
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.fillText(textInput.value || "День Рождения нашей Полли ❤️", canvas.width / 2, canvas.height * 0.93);
 
-      frame.onload = function () {
-        ctx.drawImage(frame, 0, 0, width, height);
-        const image = canvas.toDataURL("image/jpeg");
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = 'polaroid.jpg';
-        link.click();
-      };
+      const dataURL = canvas.toDataURL('image/jpeg');
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'polaroid.jpg';
+      link.click();
     }
   </script>
+
 </body>
 </html>
-
