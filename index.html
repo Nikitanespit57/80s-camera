@@ -65,7 +65,7 @@
     const shutter = document.getElementById("shutter");
     const ctx = canvas.getContext("2d");
 
-    // Используем совместимые настройки камеры
+    // Получение камеры без зума
     navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "environment",
