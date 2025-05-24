@@ -65,7 +65,6 @@
     const shutter = document.getElementById("shutter");
     const ctx = canvas.getContext("2d");
 
-    // Включаем камеру
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
         video.srcObject = stream;
